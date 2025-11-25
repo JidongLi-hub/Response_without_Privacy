@@ -1,9 +1,8 @@
 import dataclasses
 import torch 
 from transformers import PreTrainedModel, PreTrainedTokenizerBase
-from Response_without_Privacy.steering import SteeringModel
-from Response_without_Privacy.prepare_dataset import SteeringDataset
-from Response_without_Privacy.utils import ContrastivePair
+from prepare_dataset import SteeringDataset
+from utils import ContrastivePair
 from sklearn.decomposition import PCA
 from typing import List
 import typing
@@ -19,13 +18,13 @@ from matplotlib import pyplot as plt
 @dataclasses.dataclass
 class SteeringVector:
     model_type: str
-    direction: dict[int, np.ndarray]
+    directions: dict[int, np.ndarray]
     explained_variances: dict[int, float]
 
     @classmethod
     def extract(
         cls,
-        model: PreTrainedModel|SteeringModel,
+        model: PreTrainedModel,
         tokenizer: PreTrainedTokenizerBase,
         dataset: SteeringDataset,
         **kwargs
@@ -73,7 +72,7 @@ class SteeringVector:
     
 
 def extract_representations(
-        model: PreTrainedModel|SteeringModel,
+        model: PreTrainedModel,
         tokenizer: PreTrainedTokenizerBase,
         inputs: List[ContrastivePair],
         suffixes: typing.List[typing.Tuple[str, str]] = None,
@@ -90,11 +89,11 @@ def extract_representations(
     
     if accumulate_last_x_tokens == "all":
         # Accumulate hidden states of all tokens
-        print("... accumulating all hidden states")
+        print("accumulating all hidden states... ")
     elif accumulate_last_x_tokens == "suffix-only":
-        print(f"... accumulating suffix-only hidden states")
+        print(f"accumulating suffix-only hidden states... ")
     else:
-        print(f"... accumulating last {accumulate_last_x_tokens} tokens' hidden states")
+        print(f"accumulating last {accumulate_last_x_tokens} tokens' hidden states... ")
 
     n_layers = len(hidden_layer_ids)
     hidden_layer_ids = [i if i >= 0 else n_layers + i for i in hidden_layer_ids] # 
@@ -290,7 +289,7 @@ def batched_get_hiddens(
             )
 
             for layer_id in hidden_layer_ids:
-                hidden_idx = layer_id + 1 if layer_id >=0 else layer_id # 这里为社么加1
+                hidden_idx = layer_id + 1 if layer_id >=0 else layer_id # 这里为什么加1
                 for i, batch_hidden in enumerate(outputs.hidden_states[hidden_idx]):
                     if accumulate_last_x_tokens == "all":
                         accumulated_hidden_state = torch.mean(batch_hidden, dim=0)

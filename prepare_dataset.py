@@ -1,6 +1,6 @@
 from transformers import PreTrainedTokenizerBase
 from typing import List, Tuple, Optional
-from Response_without_Privacy.utils import ContrastivePair, return_default_suffixes
+from utils import ContrastivePair, return_default_suffixes
 
 class SteeringDataset:
     def __init__(

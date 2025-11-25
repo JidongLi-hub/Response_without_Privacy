@@ -1,9 +1,9 @@
 import torch
 from typing import List, Optional
-from Response_without_Privacy.extract_vector import SteeringVector
+from extract_vector import SteeringVector
 from collections import defaultdict
 from torch import nn
-from Response_without_Privacy.utils import LayerControlParams
+from utils import LayerControlParams
 
 class SteeringModel(torch.nn.Module):
     """
@@ -62,7 +62,7 @@ class SteeringModel(torch.nn.Module):
                 condition_layers[layer_id] = True
         
         if behavior_vector is not None:
-            #log(f"Applying behavior steering to layers: {behavior_layer_ids}", class_name="MalleableModel")
+            #print(f"Applying behavior steering to layers: {behavior_layer_ids}", class_name="MalleableModel")
             for layer_id in behavior_layer_ids:
                 behavior_layers[layer_id] = True
 
@@ -219,8 +219,8 @@ class LeashLayer(torch.nn.Module):
         """
         LeashLayer.forward_calls[self.layer_id] += 1
         batch_size, seq_length, hidden_dim = hidden_states.shape
-        log(f"\n\nThis is forward_call {LeashLayer.forward_calls[self.layer_id]} @ Layer {self.layer_id}", class_name="LeashLayer")
-        log(f"    Sequence length is {seq_length}", class_name="LeashLayer")
+        print(f"\n\nThis is forward_call {LeashLayer.forward_calls[self.layer_id]} @ Layer {self.layer_id}")
+        print(f"    Sequence length is {seq_length}")
 
         if not self.is_multi_steering:
             # is a dict
@@ -238,8 +238,8 @@ class LeashLayer(torch.nn.Module):
             is_condition_layer = any(layers[self.layer_id] for layers in LeashLayer.condition_layers)
             is_behavior_layer = any(layers[self.layer_id] for layers in LeashLayer.behavior_layers)
         
-        log(f"    is_condition_layer: {is_condition_layer}", class_name="LeashLayer")
-        log(f"    is_behavior_layer: {is_behavior_layer}", class_name="LeashLayer")
+        print(f"    is_condition_layer: {is_condition_layer}")
+        print(f"    is_behavior_layer: {is_behavior_layer}")
 
         original_norm = hidden_states.norm(dim=-1, keepdim=True)
 
@@ -284,9 +284,9 @@ class LeashLayer(torch.nn.Module):
             
             LeashLayer.condition_met[0] = condition_met
             
-            log(f"    Similarity: {condition_similarity}", class_name="LeashLayer")
-            log(f"    Threshold: {self.threshold}", class_name="LeashLayer")
-            log(f"    Condition Met: {condition_met}", class_name="LeashLayer")
+            print(f"    Similarity: {condition_similarity}")
+            print(f"    Threshold: {self.threshold}")
+            print(f"    Condition Met: {condition_met}")
 
     def _process_multi_conditions(self, hidden_state):
         """
@@ -315,9 +315,9 @@ class LeashLayer(torch.nn.Module):
                 
                 LeashLayer.condition_met[condition_idx] = condition_met
                 
-                log(f"    Condition {condition_idx} - Similarity: {condition_similarity}", class_name="LeashLayer")
-                log(f"    Condition {condition_idx} - Threshold: {self.thresholds[condition_idx]}", class_name="LeashLayer")
-                log(f"    Condition {condition_idx} - Condition Met: {condition_met}", class_name="LeashLayer")
+                print(f"    Condition {condition_idx} - Similarity: {condition_similarity}")
+                print(f"    Condition {condition_idx} - Threshold: {self.thresholds[condition_idx]}")
+                print(f"    Condition {condition_idx} - Condition Met: {condition_met}")
 
     def _apply_single_behavior(self, hidden_states):
         """
@@ -328,7 +328,7 @@ class LeashLayer(torch.nn.Module):
         """
         should_apply = not any(LeashLayer.condition_layers.values()) or LeashLayer.condition_met[0]
 
-        log(f"    Should Apply Behavior: {should_apply}", class_name="LeashLayer")
+        print(f"    Should Apply Behavior: {should_apply}")
 
         if should_apply:
             control = self.behavior_vector.to(dtype=hidden_states.dtype)
@@ -336,10 +336,10 @@ class LeashLayer(torch.nn.Module):
                 if self.apply_behavior_on_first_call:
                     hidden_states[0] = self.params.operator(hidden_states[0], control)
                 else:
-                    log(f"    apply_behavior_on_first_call is False, skipping behavior vector application", class_name="LeashLayer")
+                    print(f"    apply_behavior_on_first_call is False, skipping behavior vector application")
             else:
                 hidden_states[0] = self.params.operator(hidden_states[0], control)
-                log(f"    Applying behavior vector to all tokens", class_name="LeashLayer")
+                print(f"    Applying behavior vector to all tokens")
 
     def _apply_multi_behaviors(self, hidden_states):
         """
@@ -353,18 +353,18 @@ class LeashLayer(torch.nn.Module):
             if self._evaluate_rule(rule) and \
                 LeashLayer.behavior_layers[behavior_index][self.layer_id]:
                 #print(behavior_index)
-                log(f"    Rule '{rule}' satisfied. Applying behavior {behavior_index}", class_name="LeashLayer")
+                print(f"    Rule '{rule}' satisfied. Applying behavior {behavior_index}")
                 control = self.behavior_vectors[behavior_index].to(dtype=hidden_states.dtype)
                 if LeashLayer.forward_calls[self.layer_id] == 1:
                     if self.apply_behavior_on_first_call:
                         hidden_states[0] = self.params[behavior_index].operator(hidden_states[0], control)
                     else:
-                        log(f"    apply_behavior_on_first_call is False, skipping behavior vector application", class_name="LeashLayer")
+                        print(f"    apply_behavior_on_first_call is False, skipping behavior vector application")
                 else:
                     hidden_states[0] = self.params[behavior_index].operator(hidden_states[0], control)
-                    log(f"    Applying behavior vector to all tokens", class_name="LeashLayer")
+                    print(f"    Applying behavior vector to all tokens")
             else:
-                log(f"    Rule '{rule}' not satisfied.", class_name="LeashLayer")
+                print(f"    Rule '{rule}' not satisfied.")
 
     def _evaluate_rule(self, rule: str) -> bool:
         """
@@ -437,10 +437,10 @@ class LeashLayer(torch.nn.Module):
         has_nan_inf = torch.isnan(hidden_states).any() or torch.isinf(hidden_states).any()
 
         if max_ratio > 1 or has_nan_inf:
-            log(f"    Applying OOI preventive normalization. Max_ratio was {max_ratio}", class_name="LeashLayer")
+            print(f"    Applying OOI preventive normalization. Max_ratio was {max_ratio}")
             hidden_states = hidden_states * (original_norm / new_norm)
         else:
-            log(f"    No OOI preventive normalization. Max_ratio was {max_ratio}", class_name="LeashLayer")
+            print(f"    No OOI preventive normalization. Max_ratio was {max_ratio}")
 
         return hidden_states
 
@@ -448,7 +448,7 @@ class LeashLayer(torch.nn.Module):
         """
         Reset this instance of LeashLayer to its default state.
         """
-        log(f"    Resetting LeashLayer @ {self.layer_id} Instance Attributes", class_name="LeashLayer")
+        print(f"    Resetting LeashLayer @ {self.layer_id} Instance Attributes")
         self.params = LayerControlParams.default()
         self.condition_projector = None
         self.behavior_vector = None
@@ -459,7 +459,7 @@ class LeashLayer(torch.nn.Module):
         """
         Reset the class-level attributes of LeashLayer.
         """
-        log(f"    Resetting LeashLayer Class Attributes", class_name="LeashLayer")
+        print(f"    Resetting LeashLayer Class Attributes")
         cls.condition_met.clear()
         cls.forward_calls.clear()
         cls.condition_layers = None
