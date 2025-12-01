@@ -3,3 +3,4 @@ ckpt/
 results/
 *.npy
 *.bin
+__pycache__/
