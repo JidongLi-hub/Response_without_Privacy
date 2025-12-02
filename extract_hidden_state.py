@@ -56,11 +56,11 @@ def extract_last_hidden_state_for_PS_token(
         
 if __name__ == "__main__":
     
-    model_path="/model/fangly/mllm/ljd/models/Meta-Llama-3-8B"
+    model_path="/model/fangly/mllm/ljd/models/Meta-Llama-3-8B-Instruct"
     dataset_file="data/relabeled_data.jsonl"
 
     dataset = load_dataset("json", data_files=dataset_file, split="train")
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, device_map="auto")
 
-    extract_last_hidden_state_for_PS_token(model, tokenizer, dataset, output_file="data/hidden_states_PS_O.npy")
+    extract_last_hidden_state_for_PS_token(model, tokenizer, dataset, output_file="data/hidden_states_PS_O-Instruct.npy")

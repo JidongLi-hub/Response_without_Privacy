@@ -4,3 +4,5 @@ results/
 *.npy
 *.bin
 __pycache__/
+*.txt
+logs/
