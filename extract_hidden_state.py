@@ -28,10 +28,14 @@ def extract_last_hidden_state_for_PS_token(
         PS_index = [i for i, label in enumerate(new_labels) if label[0] == "[PS]"]
         O_index = []
         for _ in range(len(PS_index)):
+            search_time = 0
             while True:
+                search_time += 1
                 i = random.randint(0,len(new_labels)-1)
-                if new_labels[i][0] == "O":
+                if new_labels[i][0] == "[FO]":
                     O_index.append(i)
+                    break
+                if search_time > 15:
                     break
 
         with torch.no_grad():
@@ -42,8 +46,9 @@ def extract_last_hidden_state_for_PS_token(
             )
         
         last_hidden_states = outputs.hidden_states[-1][0]  # last hidden state shape: (batch_size, seq_len, hidden_size4096)
-        for PS_i, O_i in zip(PS_index, O_index):
+        for PS_i in PS_index:
             PS_hidden_states.append(last_hidden_states[PS_i, :].cpu().numpy())
+        for O_i in O_index:
             O_hidden_states.append(last_hidden_states[O_i, :].cpu().numpy())
         del outputs
         torch.cuda.empty_cache()
@@ -57,10 +62,10 @@ def extract_last_hidden_state_for_PS_token(
 if __name__ == "__main__":
     
     model_path="/model/fangly/mllm/ljd/models/Meta-Llama-3-8B-Instruct"
-    dataset_file="data/relabeled_data.jsonl"
+    dataset_file="data/pii-masking-200k-splited/english_pii_43k-splited-relabel.jsonl"#"data/relabeled_data.jsonl"
 
     dataset = load_dataset("json", data_files=dataset_file, split="train")
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
     model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True, device_map="auto")
 
-    extract_last_hidden_state_for_PS_token(model, tokenizer, dataset, output_file="data/hidden_states_PS_O-Instruct.npy")
+    extract_last_hidden_state_for_PS_token(model, tokenizer, dataset, output_file="data/hidden_states_PS_O-splited-Instruct.npy")

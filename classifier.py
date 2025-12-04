@@ -48,7 +48,7 @@ def load_and_split_data(data_file, batch_size=64):
     
     return train_loader, val_loader, test_loader
 
-def train(model, train_loader, val_loader, epochs, device=torch.device("cuda:0")):
+def train(model, train_loader, val_loader, epochs, ckpt_path, device=torch.device("cuda:0")):
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-2)
     history = {"train_loss": [], "val_loss": [], "val_acc": []}
@@ -95,7 +95,7 @@ def train(model, train_loader, val_loader, epochs, device=torch.device("cuda:0")
               f"Train Loss: {avg_train_loss:.4f} | "
               f"Val Loss: {avg_val_loss:.4f} | "
               f"Val Acc: {val_acc:.2f}%")
-        torch.save(model.state_dict(), f'ckpt/classifier_Instruct/classifier_model_epoch{epoch}.pth')
+        torch.save(model.state_dict(), os.path.join(ckpt_path,f'classifier_model_epoch{epoch}.pth'))
               
     return history
 
@@ -184,24 +184,27 @@ def evaluate_model(model, test_loader, device=torch.device("cuda:0")):
 if __name__ == "__main__":
     
     run_train = False
-    dataset_file = 'data/hidden_states_PS_O-Instruct.npy'  # <--- 请修改这里为你的文件名
-    ckpt_path = 'ckpt/classifier_Instruct/classifier_model_epoch19.pth'
-    evaluate_result_fig = "data/training_history_Instruct.png"
+    dataset_file = 'data/hidden_states_PS_O-splited.npy'  
+    ckpt_path = 'ckpt/classifier_splited_Instruct'
+    train_process_fig = "ckpt/classifier_splited/training_history_splited.png"
     BATCH_SIZE = 128
     EPOCHS = 20
     DEVICE = torch.device('cuda:0')
+
+    if not os.path.exists(ckpt_path):
+        os.mkdir(ckpt_path)
 
     train_loader, val_loader, test_loader = load_and_split_data(data_file=dataset_file, batch_size=BATCH_SIZE)   
     model = Classifier(input_dim=4096, num_classes=2)
 
     if not run_train:
         # 2. 加载预训练模型权重
-        model.load_state_dict(torch.load(ckpt_path, map_location=DEVICE))
+        model.load_state_dict(torch.load(os.path.join(ckpt_path,"classifier_model_epoch19.pth"), map_location=DEVICE))
         evaluate_model(model, test_loader, device=DEVICE)
 
     else:
         # 3. 开始训练
-        history = train(model, train_loader, val_loader, epochs=EPOCHS, device=DEVICE)
+        history = train(model, train_loader, val_loader, epochs=EPOCHS, ckpt_path=ckpt_path, device=DEVICE)
 
         # 4. 可视化损失变化
         plt.figure(figsize=(12, 5))
@@ -221,5 +224,5 @@ if __name__ == "__main__":
         plt.ylabel('Accuracy (%)')
         plt.legend()
 
-        plt.savefig(evaluate_result_fig)
+        plt.savefig(train_process_fig)
 
